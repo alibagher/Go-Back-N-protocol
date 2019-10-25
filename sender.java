@@ -19,7 +19,31 @@ public class sender {
         int recievePort = Integer.valueOf(args[2]).intValue();
         String fName = args[3];
 
-        
+        // The start of our window
+        int base = 1;
+        // The next number we need to send
+        int nextSeqNum = 1;
+
+        int N = 10;
+
+
+
+
+
+
+
+        // copied from slides, must change up. 
+        if (nextSeqNum < base + N) {
+            sndpkt[nextSeqNum] = make_pkt(nextSeqNum,data,chksum);
+            udt_send(sndpkt[nextSeqNum]);
+
+            if (base == nextSeqNum){
+                start_timer();
+                nextSeqNum++;
+            }
+        }else{
+            refuse_data(data)
+        }
 
     }
 
