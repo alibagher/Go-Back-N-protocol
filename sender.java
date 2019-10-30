@@ -39,6 +39,8 @@ public class sender {
         int i;
         String pktString = "";
         int pktL = 0;
+        int seqNum = 0;
+        // while loop reading in a char at a time.
         while ((i=fr.read()) != -1){
             if(pktL < 500){
                 pktString += (char) i;
@@ -46,10 +48,41 @@ public class sender {
             }else{
                 pktL = 0;
                 // make the packet and add to the vector.
-                packet p = createPacket(seqnumber, string);
-                sndpkt.add();
+                try{
+                    packet p = createPacket(seqNum, pktString);
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+
+                seqNum ++;
+                pktString = "";
+                sndpkt.add(p);
             }
         }
+
+        // make the packet of the remainig chars
+        if(pktL > 0){
+            pktL = 0;
+            try{
+                packet p = createPacket(seqNum, pktString);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+            seqNum ++;
+            sndpkt.add(p);
+        }
+
+        // finally add the EOT packet
+        try{
+            packet p = createEOT(seqNum);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        seqNum ++;
+        sndpkt.add(p);
+
+        // now we have a vector that is populated with all of the packets.
+
 
 
         try (DatagramSocket socket = new DatagramSocket(0)) {
