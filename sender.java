@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 // scanner
 import java.util.Scanner;
 
+
 class CodeRunner implements Runnable {
 
     // override the run function that the new thread will run
@@ -25,11 +26,15 @@ class CodeRunner implements Runnable {
             byte[] buffer = new byte[1000];
             DatagramPacket request = new DatagramPacket(buffer, buffer.length);
 
-            aSocket.receive(request);
-            packet p = parseUDPdata(request);
-            base = p.getSeqNum() + 1;
-            if(base == nextSeqNum){
+            socket.receive(request);
+            packet p = packet.createACK(0);
+            p.parseUDPdata(buffer);
+            globals.base = p.getSeqNum() + 1;
+            if(globals.base == globals.nextSeqNum){
                 globals.timer.cancel();
+            }
+            if(p.getType()== 2){
+                globals.eot = true;
             }
         }catch (Exception e){
             e.printStackTrace();
@@ -42,33 +47,36 @@ class CodeRunner implements Runnable {
 
 public class sender {
 
-    // The start of our window
-    private int base = 1;
-    // The next number we need to send
-    private int nextSeqNum = 1;
+    private static int N = 10;
 
-    private int N = 10;
+    
+    private static DatagramSocket socket;
+        private static InetAddress host; 
+        private static int emulatorPort;
 
-    try{
-        private static DatagramSocket socket = new DatagramSocket(1024);
-        InetAddress host = InetAddress.getByName(hostname);
-    }catch (Exception e){
-        e.printStackTrace();
-    }
+        private static Vector<packet> sndpkt = new Vector<>();
 
 
     public static void main(String args[]) throws IOException {
         String hostname = args[0];
-        int emulatorPort = Integer.valueOf(args[1]).intValue();
+        emulatorPort = Integer.valueOf(args[1]).intValue();
         globals.senderRecievePort = Integer.valueOf(args[2]).intValue();
         String fName = args[3];
+
+        host = InetAddress.getByName(hostname);
+
+        try{
+            socket = new DatagramSocket(1024);
+        }catch(SocketException e){
+            System.out.println("Socket: " + e.getMessage());
+        }
             
         //InetAddress aHost = InetAddress.getByName(args[0]);
 
         
 
         // first we need to create an array of packets ready to be sent.
-        Vector sndpkt = new Vector();
+        
         //populate the vector with packets. 
         //while we have more characters to parse from the file. 
         // but we have to open the file first
@@ -88,14 +96,15 @@ public class sender {
                 pktL = 0;
                 // make the packet and add to the vector.
                 try{
-                    packet p = createPacket(seqNum, pktString);
+                    packet p = packet.createPacket(seqNum, pktString);
+                    seqNum ++;
+                    pktString = "";
+                    sndpkt.add(p);
                 }catch(Exception e){
                     e.printStackTrace();
                 }
 
-                seqNum ++;
-                pktString = "";
-                sndpkt.add(p);
+                
             }
         }
 
@@ -103,22 +112,24 @@ public class sender {
         if(pktL > 0){
             pktL = 0;
             try{
-                packet p = createPacket(seqNum, pktString);
+                packet p = packet.createPacket(seqNum, pktString);
+                seqNum ++;
+                sndpkt.add(p);
             }catch(Exception e){
                 e.printStackTrace();
             }
-            seqNum ++;
-            sndpkt.add(p);
+            
         }
 
         // finally add the EOT packet
         try{
-            packet p = createEOT(seqNum);
+            packet p = packet.createEOT(seqNum);
+            seqNum ++;
+            sndpkt.add(p);
         }catch(Exception e){
             e.printStackTrace();
         }
-        seqNum ++;
-        sndpkt.add(p);
+       
 
         // now we have a vector that is populated with all of the packets.
 
@@ -127,32 +138,36 @@ public class sender {
         Thread thread = new Thread(runner);
         thread.start();
 
-        while (nextSeqNum != seqNum){
+        while (!globals.eot){
             // checking if we can send the packet.
-            if (nextSeqNum < base + N){
+            if (globals.nextSeqNum < globals.base + N){
                 //sndpkt[nextSeqNum] = make_pkt(nextSeqNum,data,chksum);
                 //udt_send(sndpkt[nextSeqNum]);
                 // copied from book, how to send packets using udp
                 // send the packet
                 try{
-                    byte [] p = sndpkt[nextSeqNum-1].getUDPdata();
+                    byte [] p = sndpkt.get((globals.nextSeqNum)-1).getUDPdata();
                     DatagramPacket request = new DatagramPacket(p, p.toString().length(), host, emulatorPort);
                     socket.send(request);
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
 
-                if (base == nextSeqNum){
+                if (globals.base == globals.nextSeqNum){
                     // this starts a timer for 100 miliseconds
                     globals.timer.schedule(new RemindTask(), 100);
                 }
                 // move the next seq number. 
-                nextSeqNum++;
+                globals.nextSeqNum++;
                 
             }else{
                 //refuse_data(data)
             }
         }
+
+    if (socket != null)
+        socket.close();
+
     }
 
 
@@ -167,10 +182,10 @@ public class sender {
             // start the new timer.
             globals.timer.schedule(new RemindTask(), 100);
             
-            for (int i = base; i < nextSeqNum; i++){
+            for (int i = globals.base; i < globals.nextSeqNum; i++){
                 // copied from book, how to send packets using udp
                 try{
-                    byte [] p = sndpkt[i-1].getUDPdata();
+                    byte [] p = sndpkt.get(i-1).getUDPdata();
                     DatagramPacket request = new DatagramPacket(p, p.toString().length(), host , emulatorPort);
                     //DatagramPacket response = new DatagramPacket(new byte[1024], 1024);
                     socket.send(request);
