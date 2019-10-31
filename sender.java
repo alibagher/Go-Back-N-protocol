@@ -13,20 +13,59 @@ import java.util.concurrent.TimeUnit;
 // scanner
 import java.util.Scanner;
 
+class CodeRunner implements Runnable {
+
+    // override the run function that the new thread will run
+    @Override
+    public void run() {
+        try{
+            // open a port to listen from. 
+            DatagramSocket socket = new DatagramSocket(globals.senderRecievePort);
+
+            byte[] buffer = new byte[1000];
+            DatagramPacket request = new DatagramPacket(buffer, buffer.length);
+
+            aSocket.receive(request);
+            packet p = parseUDPdata(request);
+            base = p.getSeqNum() + 1;
+            if(base == nextSeqNum){
+                globals.timer.cancel();
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+}
+
+
+
 public class sender {
+
+    // The start of our window
+    private int base = 1;
+    // The next number we need to send
+    private int nextSeqNum = 1;
+
+    private int N = 10;
+
+    try{
+        private static DatagramSocket socket = new DatagramSocket(1024);
+        InetAddress host = InetAddress.getByName(hostname);
+    }catch (Exception e){
+        e.printStackTrace();
+    }
+
 
     public static void main(String args[]) throws IOException {
         String hostname = args[0];
         int emulatorPort = Integer.valueOf(args[1]).intValue();
-        int recievePort = Integer.valueOf(args[2]).intValue();
+        globals.senderRecievePort = Integer.valueOf(args[2]).intValue();
         String fName = args[3];
+            
+        //InetAddress aHost = InetAddress.getByName(args[0]);
 
-        // The start of our window
-        int base = 1;
-        // The next number we need to send
-        int nextSeqNum = 1;
-
-        int N = 10;
+        
 
         // first we need to create an array of packets ready to be sent.
         Vector sndpkt = new Vector();
@@ -83,36 +122,62 @@ public class sender {
 
         // now we have a vector that is populated with all of the packets.
 
+        // create a new thread and to listen to acks
+        CodeRunner runner = new CodeRunner();
+        Thread thread = new Thread(runner);
+        thread.start();
 
+        while (nextSeqNum != seqNum){
+            // checking if we can send the packet.
+            if (nextSeqNum < base + N){
+                //sndpkt[nextSeqNum] = make_pkt(nextSeqNum,data,chksum);
+                //udt_send(sndpkt[nextSeqNum]);
+                // copied from book, how to send packets using udp
+                // send the packet
+                try{
+                    byte [] p = sndpkt[nextSeqNum-1].getUDPdata();
+                    DatagramPacket request = new DatagramPacket(p, p.toString().length(), host, emulatorPort);
+                    socket.send(request);
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
 
-        try (DatagramSocket socket = new DatagramSocket(0)) {
-            socket.setSoTimeout(10000);
-            InetAddress host = InetAddress.getByName(hostname);
-            DatagramPacket request = new DatagramPacket(new byte[1], 1, host , PORT);
-            DatagramPacket response = new DatagramPacket(new byte[1024], 1024);
-            socket.send(request);
-            socket.receive(response);
-            String result = new String(response.getData(), 0, response.getLength(), "US-ASCII");
-            System.out.println(result);
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-
-
-        
-        // copied from slides, must change up. 
-        if (nextSeqNum < base + N) {
-            sndpkt[nextSeqNum] = make_pkt(nextSeqNum,data,chksum);
-            udt_send(sndpkt[nextSeqNum]);
-
-            if (base == nextSeqNum){
-                start_timer();
+                if (base == nextSeqNum){
+                    // this starts a timer for 100 miliseconds
+                    globals.timer.schedule(new RemindTask(), 100);
+                }
+                // move the next seq number. 
                 nextSeqNum++;
+                
+            }else{
+                //refuse_data(data)
             }
-        }else{
-            refuse_data(data)
         }
-
     }
 
+
+    static class RemindTask extends TimerTask {
+        public void run() {
+            //System.out.println("Time's up!");
+            globals.timer.cancel(); //Terminate the timer thread
+            globals.timer.purge();
+
+            globals.timer = new Timer();
+            
+            // start the new timer.
+            globals.timer.schedule(new RemindTask(), 100);
+            
+            for (int i = base; i < nextSeqNum; i++){
+                // copied from book, how to send packets using udp
+                try{
+                    byte [] p = sndpkt[i-1].getUDPdata();
+                    DatagramPacket request = new DatagramPacket(p, p.toString().length(), host , emulatorPort);
+                    //DatagramPacket response = new DatagramPacket(new byte[1024], 1024);
+                    socket.send(request);
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+    }
 }
