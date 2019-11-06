@@ -1,4 +1,10 @@
 import java.util.*;
+//imports
+import java.net.*;
+import java.io.*;
+import  java.lang.*;
+
+import java.util.concurrent.locks.ReentrantLock;
 
 public class globals {
     // our timer
@@ -15,4 +21,18 @@ public class globals {
     public static int pktNum = 0;
 
     public static int mod = 0;
+
+
+    public static int emulatorPort;
+    public static DatagramSocket socket;
+    public static InetAddress host; 
+
+    public static Vector<packet> sndpkt = new Vector<>();
+
+        public static FileWriter fSeq;
+        public static BufferedWriter brSeq;
+        public static FileWriter fAck;
+        public static BufferedWriter brAck;
+        public static FileWriter fTime ;
+        public static BufferedWriter brTime;
 }

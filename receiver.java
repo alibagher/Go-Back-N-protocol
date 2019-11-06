@@ -46,11 +46,7 @@ public class receiver {
 
                 int s = gotP.getSeqNum();
 
-                if ((expectedseqnum % 32) == s){
-                    expectedseqnum++;
-                    //write into the output file
-                    f.write(gotP.getData());
-                }
+                
 
                 // System.out.println("got packet with seqnumber: " + s);
             
@@ -66,6 +62,11 @@ public class receiver {
                 }
 
 
+                if ((expectedseqnum % 32) == s){
+                    expectedseqnum++;
+                    //write into the output file
+                    f.write(gotP.getData());
+                }
 
                 byte [] p = rPacket.getUDPdata();
                 request = new DatagramPacket(p, 512, host, emulatorPort);
@@ -77,7 +78,8 @@ public class receiver {
 
                 
             }
-
+        }catch (java.net.BindException e){
+            System.out.println(e.getCause() + "abidah");
         }catch (Exception e){
             e.printStackTrace();
         }finally{
