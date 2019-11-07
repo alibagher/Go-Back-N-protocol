@@ -1,9 +1,10 @@
+// global file for sender.
+
+// imports
 import java.util.*;
-//imports
 import java.net.*;
 import java.io.*;
 import  java.lang.*;
-
 import java.util.concurrent.locks.ReentrantLock;
 
 public class globals {
@@ -23,16 +24,20 @@ public class globals {
     public static int mod = 0;
 
 
+    // ports and sockets. 
     public static int emulatorPort;
     public static DatagramSocket socket;
     public static InetAddress host; 
 
     public static Vector<packet> sndpkt = new Vector<>();
 
-        public static FileWriter fSeq;
-        public static BufferedWriter brSeq;
-        public static FileWriter fAck;
-        public static BufferedWriter brAck;
-        public static FileWriter fTime ;
-        public static BufferedWriter brTime;
+    // files
+    public static FileWriter fSeq;
+    public static BufferedWriter brSeq;
+    public static FileWriter fAck;
+    public static BufferedWriter brAck;
+    public static FileWriter fTime ;
+    public static BufferedWriter brTime;
+
+    public static ReentrantLock lock = new ReentrantLock();
 }

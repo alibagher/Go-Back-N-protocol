@@ -13,12 +13,18 @@ import java.util.Scanner;
 public class receiver {
 
     private static int expectedseqnum = 0;
+    private static FileWriter fArrive;
+    private static BufferedWriter brArrive;
 
     public static void main(String args[]) throws IOException {
         String hostname = args[0];
         int emulatorPort = Integer.valueOf(args[1]).intValue();
         int recievePort = Integer.valueOf(args[2]).intValue();
         String fName = args[3];
+
+        File file = new File("arrival.log");
+        fArrive = new FileWriter(file);
+        brArrive = new BufferedWriter(fArrive);
         
         DatagramSocket socket = null;
         try{
@@ -28,10 +34,6 @@ public class receiver {
 
             boolean b = true;
 
-            // System.out.println("before the while loop");
-
-            //File file = new File(fName);
-            //FileWriter fr = new FileWriter(file, true);
             FileOutputStream f = new FileOutputStream(fName);
             
 
@@ -41,14 +43,12 @@ public class receiver {
                 socket.receive(request);
 
                 
-                // System.out.println("buffer size: " + buffer.length);
                 packet gotP = packet.parseUDPdata(buffer);
 
                 int s = gotP.getSeqNum();
 
-                
-
-                // System.out.println("got packet with seqnumber: " + s);
+                //System.out.println("got packet with seqnumber: " + s);
+                brArrive.write(new Integer(s).toString() + "\n");
             
                 packet rPacket;
 
@@ -78,14 +78,18 @@ public class receiver {
 
                 
             }
-        }catch (java.net.BindException e){
-            System.out.println(e.getCause() + "abidah");
         }catch (Exception e){
             e.printStackTrace();
         }finally{
             if (socket != null)
                 socket.close();
         }
+        
+        if (socket != null)
+                socket.close();
+
+        brArrive.close();
+        fArrive.close();
 
 
     }
