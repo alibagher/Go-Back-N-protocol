@@ -4,68 +4,57 @@
 //imports
 import java.net.*;
 import java.io.*;
-
 import java.util.*;
-
 import  java.lang.*;
 import java.util.concurrent.TimeUnit;
 
+// abs
 import java.lang.Math.*;
 
 // scanner
 import java.util.Scanner;
 
+
 import java.lang.Integer.*;
 import java.lang.Object;
 import java.lang.Number;
 
-class RemindTask extends TimerTask {
-        public void run() {
-            //System.out.println("Time's up!");
-            globals.timer.cancel(); //Terminate the timer thread
-            globals.timer.purge();
 
-            globals.timer = new Timer();
-            globals.timer.schedule(new RemindTask(), 115);
-            
-            // start the new timer.
-            
-            if(!globals.eot){
-                
-                // (globals.mod*32)+globals.base+
-                
-                //globals.lock.lock();
-                int n = globals.nextSeqNum;
-                
-                //System.out.println("before the for loop");
-                for (int i = globals.base + globals.mod * 32; i < n+1; i++){
-                    System.out.println("in loop");
-                    // copied from book, how to send packets using udp
-                    
-                    if (i < globals.sndpkt.size() -1  && !globals.eot){
+// timer class
+class RemindTask extends TimerTask {
+    public void run() {
+        // time's up
+        globals.timer.cancel(); //Terminate the timer thread
+        globals.timer.purge();
+
+        globals.timer = new Timer();
+        globals.timer.schedule(new RemindTask(), 115);
+        
+        if(!globals.eot){
+            // 
+            int n = globals.nextSeqNum; 
+
+            for (int i = globals.base + globals.mod * 32; i < n+1; i++){
+                if (i < globals.sndpkt.size() -1  && !globals.eot){
                     try{
-                         System.out.println("sending packet seq number: " + globals.sndpkt.get(i).getSeqNum() + "at index: " + (i) + " mod: " + globals.mod);
+                        //System.out.println("sending packet seq number: " + globals.sndpkt.get(i).getSeqNum() + "at index: " + (i) + " mod: " + globals.mod);
                         byte [] p = globals.sndpkt.get(i).getUDPdata();
                         DatagramPacket request = new DatagramPacket(p, 512, globals.host , globals.emulatorPort);
-                        //DatagramPacket response = new DatagramPacket(new byte[1024], 1024);
                         globals.socket.send(request);
                         globals.brSeq.write(new Integer(globals.sndpkt.get(i).getSeqNum()).toString() + "\n");
                     } catch (IOException ex) {
                         ex.printStackTrace();
                     }
-                    }else if(globals.eot){
-                        //globals.lock.unlock();
-                        globals.timer.cancel();
-                    }
+                }else if(globals.eot){
+                    globals.timer.cancel();
                 }
-                //globals.lock.unlock();
-                
-
-            }else{
-                globals.timer.cancel();
             }
+
+        }else{
+            globals.timer.cancel();
         }
     }
+}
 
 
 class CodeRunner implements Runnable {
@@ -81,7 +70,6 @@ class CodeRunner implements Runnable {
             // open a port to listen from. 
             DatagramSocket aSocket = new DatagramSocket(globals.senderRecievePort);
 
-            //while(!globals.eot){
             while (true){
                 byte[] buffer = new byte[512];
                 DatagramPacket request = new DatagramPacket(buffer, buffer.length);
@@ -91,17 +79,13 @@ class CodeRunner implements Runnable {
                 packet p = packet.parseUDPdata(buffer);
 
                 if (p.getType() == 2){
-                    System.out.println("got the eof from reciever");
-                    System.out.println("got the eof from reciever");
-                    System.out.println("got the eof from reciever");
-                    System.out.println("got the eof from reciever");
-                    System.out.println("got the eof from reciever");
                     globals.eot = true;
                     break;
                 }
 
                 globals.brAck.write(new Integer(p.getSeqNum()).toString() + "\n");
 
+                // must be 
                 if(p.getSeqNum() == 0 && globals.base > 1 || p.getSeqNum() == 1 && globals.base > 1 || p.getSeqNum() == 2 && globals.base > 2
                     || p.getSeqNum() == 3 && globals.base > 3 || p.getSeqNum() == 4 && globals.base > 4
                         || p.getSeqNum() == 5 && globals.base > 5 || p.getSeqNum() == 6 && globals.base > 6 || p.getSeqNum() == 7 && globals.base > 7){
@@ -131,9 +115,10 @@ class CodeRunner implements Runnable {
                 //globals.lock.unlock();
 
 
-                System.out.println("got packet with seqnum: " + p.getSeqNum() + "globals.pktnum: " + globals.pktNum);
-                System.out.println("recievednum" + receivedNum + " base: " + globals.base + " mod: " + globals.mod); 
+                //System.out.println("got packet with seqnum: " + p.getSeqNum() + "globals.pktnum: " + globals.pktNum);
+                //System.out.println("recievednum" + receivedNum + " base: " + globals.base + " mod: " + globals.mod); 
 
+                // if the recieved number is the last packet, we know we are done. 
                 if(receivedNum >= (globals.pktNum - 2)){
                     globals.eot = true;
                     break;
@@ -149,7 +134,6 @@ class CodeRunner implements Runnable {
 
 
 public class sender {
-
     // window size
     private static int N = 10;
 
@@ -158,7 +142,6 @@ public class sender {
         globals.emulatorPort = Integer.valueOf(args[1]).intValue();
         globals.senderRecievePort = Integer.valueOf(args[2]).intValue();
         String fName = args[3];
-
 
         // get all of the files ready for writing
         try{
@@ -244,8 +227,8 @@ public class sender {
         globals.pktNum = seqNum;
 
         
+        //  ***************  Now we have a vector that is populated with all of the packets. ***************
 
-        // now we have a vector that is populated with all of the packets.
 
         // create a new thread and to listen to acks
         CodeRunner runner = new CodeRunner();
@@ -257,22 +240,12 @@ public class sender {
 
         while (!globals.eot){
             // checking if we can send the packet.
-            try{
-                //Thread.sleep(5);
-            }catch(Exception e){
-                //System.out.println(e.getMessage());
-            }
-
             globals.lock.lock();
             if (globals.nextSeqNum  < (globals.base +(globals.mod * 32) + N) && globals.nextSeqNum < globals.sndpkt.size()-2){
-                System.out.println("sending sequm: " + (globals.nextSeqNum) + "base: " + (globals.base +(globals.mod * 32)) + " size of vecotr: " + globals.sndpkt.size());
-                //sndpkt[nextSeqNum] = make_pkt(nextSeqNum,data,chksum);
-                //udt_send(sndpkt[nextSeqNum]);
                 // copied from book, how to send packets using udp
                 // send the packet
                 try{
                     byte [] p = globals.sndpkt.get((globals.nextSeqNum)).getUDPdata();
-                    //System.out.println("sending something of size: " + p.toString().length());
                     DatagramPacket request = new DatagramPacket(p, 512, globals.host, globals.emulatorPort);
                     globals.socket.send(request);
                     globals.brSeq.write(new Integer(globals.sndpkt.get(globals.nextSeqNum).getSeqNum()).toString() + "\n");
@@ -280,9 +253,7 @@ public class sender {
                     ex.printStackTrace();
                 }
 
-                //&& !globals.eot
                 if (globals.base + (globals.mod * 32) == globals.nextSeqNum){
-                    System.out.println("base = nextq");
                     // this starts a timer for 100 miliseconds
                     globals.timer.cancel(); //Terminate the timer thread
                     globals.timer.purge(); 
@@ -290,13 +261,6 @@ public class sender {
                     globals.timer = new Timer();
                     globals.timer.schedule(new RemindTask(), 115);
                 }
-
-                // move the next seq number.
-                ////// ******** not working 
-                // TO DO: akshdf k
-                
-                
-                
                 
                 // && globals.nextSeqNum < globals.base + (globals.mod * 32) +N
                 if (globals.nextSeqNum < globals.sndpkt.size()-2){
@@ -304,10 +268,9 @@ public class sender {
                 }
             
             }else{
-                //refuse_data(data)
+                // refuse data
             }
-            globals.lock.unlock();
-            
+            globals.lock.unlock();   
         }
 
         // send the eot because we have sent everything and got acks for them as well.
@@ -323,14 +286,13 @@ public class sender {
 
         // calculate and record the transmition time.
         long endTime = System.currentTimeMillis();
-        globals.brTime.write(new Integer((int)((int)endTime - (int)startTime)).toString() + "\n");
+        globals.brTime.write(new Integer((int)((int)endTime - (int)startTime)).toString());
 
-
+        // close everything.
         if (globals.socket != null){
             globals.socket.close();
         }
 
-        // close all of the files. 
         try {
             globals.brSeq.close();
             globals.fSeq.close();
@@ -344,9 +306,5 @@ public class sender {
             e.printStackTrace();
         }
 
-        //thread.stop();
-        //return;
-
     }
 }
-

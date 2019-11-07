@@ -34,10 +34,12 @@ public class receiver {
 
             boolean b = true;
 
+            // 
             FileOutputStream f = new FileOutputStream(fName);
             
-
             while(b){
+
+                // create a datagram and receive from the socket.
                 byte[] buffer = new byte[512];
                 DatagramPacket request = new DatagramPacket(buffer, buffer.length);
                 socket.receive(request);
@@ -61,7 +63,7 @@ public class receiver {
                     rPacket = packet.createACK(expectedseqnum);
                 }
 
-
+                // if the squence number we recieved is the one we want, then increase expected and write to file.
                 if ((expectedseqnum % 32) == s){
                     expectedseqnum++;
                     //write into the output file
@@ -84,10 +86,10 @@ public class receiver {
             if (socket != null)
                 socket.close();
         }
-        
+
+        // close everything
         if (socket != null)
                 socket.close();
-
         brArrive.close();
         fArrive.close();
 

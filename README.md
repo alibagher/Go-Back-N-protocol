@@ -10,3 +10,4 @@ seqnum.log records all of the sequence number the sender has sent.
 ack.log records all of the acks the sender recieves.
 time.log records the time the program took to send the file in miliseconds.
 
+A report on the time experiment is in the file "Time Experiment Report" and all of the raw data and more graphs are in "experiment.xlsx"
